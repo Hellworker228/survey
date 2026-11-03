@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Результаты - SurveySystem</title>
+    <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
+</head>
+<body class="results-page">
+<nav th:replace="~{fragments :: navbar('completed')}"></nav>
+
+<div class="results-header">
+    <div class="container">
+        <h1 th:text="${survey.title}">Название анкеты</h1>
+        <p class="lead" th:text="${survey.description}">Описание</p>
+    </div>
+</div>
+
+<div th:replace="~{fragments :: messages}"></div>
+
+<div class="container">
+    <div class="score-card">
+        <div class="score-circle" th:if="${result.graded}">
+            <span class="score-number" th:text="${result.percent}">85</span>
+            <span class="score-label">%</span>
+        </div>
+        <div class="score-circle" th:unless="${result.graded}">
+            <i class="bi bi-check-lg" style="font-size: 3rem;"></i>
+        </div>
+        <div class="score-info">
+            <h3 th:if="${result.graded}">
+                <i class="bi bi-trophy-fill"></i>
+                <span th:text="${result.percent >= 80 ? 'Отличный результат!' : (result.percent >= 50 ? 'Хороший результат' : 'Есть над чем поработать')}">Результат</span>
+            </h3>
+            <h3 th:unless="${result.graded}">
+                <i class="bi bi-check-circle-fill"></i> Ответы сохранены
+            </h3>
+            <p th:if="${result.graded}">
+                <i class="bi bi-check-circle"></i>
+                Правильных ответов: <strong th:text="${result.correctCount}">17</strong>
+                из <strong th:text="${result.gradedCount}">20</strong>
+            </p>
+            <p>
+                <i class="bi bi-clock-history"></i>
+                Отправлено:
+                <strong th:text="${result.submittedAt != null ? #temporals.format(result.submittedAt, 'dd.MM.yyyy HH:mm') : '—'}">01.01.2030 12:00</strong>
+            </p>
+        </div>
+    </div>
+
+    <div class="answers-list">
+        <h3 class="mb-4"><i class="bi bi-list-check me-2"></i>Детализация ответов</h3>
+
+        <div th:each="qr, iterStat : ${questionResults}" class="answer-item"
+             th:classappend="${qr.correct == null ? '' : (qr.correct ? 'correct' : 'incorrect')}">
+            <div class="answer-question">
+                <i class="bi bi-question-circle"></i>
+                <span th:text="${iterStat.count + '. ' + qr.question.content}">Вопрос</span>
+                <span th:if="${qr.correct != null}" class="answer-status"
+                      th:classappend="${qr.correct} ? 'status-correct' : 'status-incorrect'">
+                    <i th:if="${qr.correct}" class="bi bi-check-circle"></i>
+                    <i th:unless="${qr.correct}" class="bi bi-x-circle"></i>
+                    <span th:text="${qr.correct} ? 'Верно' : 'Неверно'">Верно</span>
+                </span>
+            </div>
+
+            <div class="answer-content">
+                <div class="answer-given">
+                    <div class="answer-given-label">Ваш ответ</div>
+                    <div class="answer-given-value">
+                        <div th:each="item : ${qr.chosen}">
+                            <i class="bi bi-dot"></i><span th:text="${item}">Вариант</span>
+                        </div>
+                        <span th:if="${qr.chosen.isEmpty() and qr.text != null}" th:text="${qr.text}">Текстовый ответ</span>
+                        <span th:if="${!qr.answered}" class="text-muted">Не указан</span>
+                    </div>
+                </div>
+                <div th:if="${qr.correct != null and !qr.correct and qr.correctText != null}" class="answer-correct">
+                    <div class="answer-correct-label">Правильный ответ</div>
+                    <div class="answer-correct-value">
+                        <i class="bi bi-check-circle"></i>
+                        <span th:text="${qr.correctText}">Правильный вариант</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center mt-5 mb-5">
+        <a th:href="@{/surveys}" class="btn-action btn-action-primary">
+            <i class="bi bi-list"></i> Вернуться к анкетам
+        </a>
+        <a th:href="@{/completed-surveys}" class="btn-action btn-action-outline ms-3">
+            <i class="bi bi-archive"></i> Мои ответы
+        </a>
+        <button type="button" onclick="window.print()" class="btn-action btn-action-outline ms-3">
+            <i class="bi bi-printer"></i> Печать результатов
+        </button>
+    </div>
+</div>
+
+<script th:src="@{/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${survey.title}">Прохождение анкеты - SurveySystem</title>
+    <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
+</head>
+<body class="survey-detail-page">
+<nav th:replace="~{fragments :: navbar('surveys')}"></nav>
+
+<div class="survey-detail-header">
+    <div class="container">
+        <h1 th:text="${survey.title}">Название анкеты</h1>
+        <p class="lead" th:text="${survey.description}">Описание анкеты</p>
+        <p class="mb-0 small" th:if="${survey.endsAt != null}">
+            <i class="bi bi-clock me-1"></i>Приём ответов до
+            <span th:text="${#temporals.format(survey.endsAt, 'dd.MM.yyyy HH:mm')}">01.01.2030 12:00</span>
+        </p>
+    </div>
+</div>
+
+<div th:replace="~{fragments :: messages}"></div>
+
+<div class="container">
+    <div th:if="${preview}" class="alert alert-warning mt-3">
+        <i class="bi bi-eye me-2"></i>Режим просмотра: анкета не опубликована или срок её действия истёк, отправка ответов недоступна.
+        <a th:if="${manager}" th:href="@{/survey/{id}/edit(id=${survey.id})}" class="alert-link ms-2">Открыть редактор</a>
+    </div>
+
+    <div th:if="${survey.anonymous}" class="alert alert-info mt-3">
+        <i class="bi bi-incognito me-2"></i>Анкета анонимная: ваши ответы не связываются с вашей учётной записью.
+    </div>
+
+    <form th:action="@{${submitUrl}}" method="post" class="mt-4">
+        <input type="hidden" name="_csrf" th:value="${csrfToken}">
+
+        <div th:each="question, iterStat : ${questions}" class="question-card">
+            <div class="card-header">
+                <h5>
+                    <i class="bi bi-question-circle"></i>
+                    <span th:text="${iterStat.count + '. ' + question.content}">Вопрос</span>
+                    <span th:if="${question.required}" class="text-danger ms-1" title="Обязательный вопрос">*</span>
+                </h5>
+                <small class="text-muted" th:if="${question.multiple}">Можно выбрать несколько вариантов</small>
+            </div>
+            <div class="card-body">
+                <div th:if="${question.single}">
+                    <div th:each="option : ${question.options}" class="form-check-custom d-flex align-items-center">
+                        <input class="form-check-input" type="radio"
+                               th:name="'q_' + ${question.id}" th:value="${option.id}"
+                               th:id="'q' + ${question.id} + 'o' + ${option.id}"
+                               th:required="${question.required}">
+                        <label class="form-check-label" th:for="'q' + ${question.id} + 'o' + ${option.id}">
+                            <span th:text="${option.content}">Вариант ответа</span>
+                        </label>
+                    </div>
+                </div>
+                <div th:if="${question.multiple}">
+                    <div th:each="option : ${question.options}" class="form-check-custom d-flex align-items-center">
+                        <input class="form-check-input" type="checkbox"
+                               th:name="'q_' + ${question.id}" th:value="${option.id}"
+                               th:id="'q' + ${question.id} + 'o' + ${option.id}">
+                        <label class="form-check-label" th:for="'q' + ${question.id} + 'o' + ${option.id}">
+                            <span th:text="${option.content}">Вариант ответа</span>
+                        </label>
+                    </div>
+                </div>
+                <div th:if="${question.text}">
+                    <textarea class="input-answer" rows="3" maxlength="2000"
+                              th:name="'q_' + ${question.id}" th:required="${question.required}"
+                              placeholder="Введите ваш ответ здесь..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-5 mb-5">
+            <button type="submit" class="btn-submit" th:disabled="${preview}">
+                <i class="bi bi-send me-2"></i>Отправить ответы
+            </button>
+            <a th:if="${session.userId != null}" th:href="@{/surveys}" class="btn-back">
+                <i class="bi bi-arrow-left me-2"></i>Назад к анкетам
+            </a>
+        </div>
+    </form>
+</div>
+
+<script th:src="@{/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

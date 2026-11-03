@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактор анкеты - SurveySystem</title>
+    <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
+</head>
+<body class="surveys-page">
+<nav th:replace="~{fragments :: navbar('my')}"></nav>
+
+<div class="surveys-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-7">
+                <h1 th:text="${survey.title}">Название анкеты</h1>
+                <p class="mb-0">
+                    <span th:if="${!survey.active}" class="badge bg-secondary">Черновик</span>
+                    <span th:if="${survey.active and survey.expired}" class="badge bg-warning text-dark">Срок истёк</span>
+                    <span th:if="${survey.active and !survey.expired}" class="badge bg-success">Опубликована</span>
+                    <span th:if="${survey.anonymous}" class="badge bg-dark ms-1">Анонимная</span>
+                    <span class="ms-2"><span th:text="${survey.responsesCount}">0</span> ответов</span>
+                </p>
+            </div>
+            <div class="col-lg-5 text-lg-end mt-3 mt-lg-0 d-flex flex-wrap gap-2 justify-content-lg-end">
+                <form th:action="@{/survey/{id}/publish(id=${survey.id})}" method="post" class="d-inline">
+                    <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                    <input type="hidden" name="active" th:value="${!survey.active}">
+                    <button type="submit" class="btn btn-light" th:classappend="${survey.active} ? '' : 'fw-bold'">
+                        <i class="bi me-1" th:classappend="${survey.active} ? 'bi-pause-circle' : 'bi-rocket-takeoff'"></i>
+                        <span th:text="${survey.active} ? 'Снять с публикации' : 'Опубликовать'">Опубликовать</span>
+                    </button>
+                </form>
+                <a th:href="@{/survey/{id}(id=${survey.id})}" class="btn btn-light"><i class="bi bi-eye me-1"></i>Просмотр</a>
+                <a th:href="@{/survey/{id}/statistics(id=${survey.id})}" class="btn btn-light"><i class="bi bi-bar-chart me-1"></i>Статистика</a>
+                <a th:href="@{/survey/{id}/export(id=${survey.id})}" class="btn btn-light"><i class="bi bi-file-earmark-excel me-1"></i>Excel</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments :: messages}"></div>
+
+<div class="container mb-5">
+    <div th:if="${survey.responsesCount > 0}" class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        У анкеты уже есть ответы. Изменение или удаление вопросов и вариантов повлияет на статистику и результаты.
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px;">
+        <div class="card-header bg-white fw-bold"><i class="bi bi-gear me-2"></i>Настройки</div>
+        <div class="card-body p-4">
+            <form th:action="@{/survey/{id}/edit(id=${survey.id})}" method="post">
+                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold" for="title">Название</label>
+                        <input type="text" class="form-control" id="title" name="title" maxlength="100" required th:value="${survey.title}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold" for="endsAt">Приём ответов до</label>
+                        <input type="datetime-local" class="form-control" id="endsAt" name="endsAt" th:value="${endsAtValue}">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold" for="description">Описание</label>
+                        <textarea class="form-control" id="description" name="description" rows="2" maxlength="2000"
+                                  th:text="${survey.description}"></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Доступ</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="access" id="accessPublic" value="public" th:checked="${survey.public}">
+                            <label class="form-check-label" for="accessPublic">Все авторизованные пользователи</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="access" id="accessList" value="list" th:checked="${!survey.public}">
+                            <label class="form-check-label" for="accessList">Только выбранные пользователи</label>
+                        </div>
+                        <input type="text" class="form-control mt-2" name="accessList"
+                               placeholder="Имена или email через запятую" th:value="${survey.accessList}">
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="anonymous" id="anonymous" value="true"
+                                   th:checked="${survey.anonymous}">
+                            <label class="form-check-label" for="anonymous">
+                                Анонимная анкета: доступна по ссылке без входа, ответы не связываются с пользователем
+                            </label>
+                            <div class="form-text">Для анонимной анкеты доступ должен быть открыт для всех. Изменить анонимность после появления ответов нельзя</div>
+                        </div>
+                        <div th:if="${shareUrl != null}" class="mt-2">
+                            <label class="form-label fw-semibold" for="shareUrl">Ссылка для участников</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="shareUrl" th:value="${shareUrl}" readonly>
+                                <button type="button" class="btn btn-outline-secondary" onclick="copyShareUrl()">
+                                    <i class="bi bi-clipboard me-1"></i>Копировать
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3"><i class="bi bi-check-lg me-2"></i>Сохранить настройки</button>
+            </form>
+        </div>
+    </div>
+
+    <h4 class="mb-3"><i class="bi bi-list-ol me-2"></i>Вопросы</h4>
+
+    <div th:if="${questions.isEmpty()}" class="alert alert-info">В анкете пока нет вопросов. Добавьте первый вопрос ниже.</div>
+
+    <div th:each="question, iter : ${questions}" class="card border-0 shadow-sm mb-4" style="border-radius: 15px;">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <span class="fw-bold">Вопрос <span th:text="${iter.count}">1</span></span>
+            <span class="badge bg-light text-dark" th:text="${question.typeLabel}">Один вариант</span>
+        </div>
+        <div class="card-body p-4">
+            <form th:action="@{/survey/{id}/questions/save(id=${survey.id})}" method="post" class="row g-2 align-items-center mb-3">
+                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                <input type="hidden" name="questionId" th:value="${question.id}">
+                <div class="col-lg-5">
+                    <input type="text" class="form-control" name="content" maxlength="1000" required th:value="${question.content}">
+                </div>
+                <div class="col-lg-3">
+                    <select class="form-select" name="type">
+                        <option value="SINGLE" th:selected="${question.single}">Один вариант</option>
+                        <option value="MULTIPLE" th:selected="${question.multiple}">Несколько вариантов</option>
+                        <option value="TEXT" th:selected="${question.text}">Текстовый ответ</option>
+                    </select>
+                </div>
+                <div class="col-lg-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="required" value="true"
+                               th:id="'req' + ${question.id}" th:checked="${question.required}">
+                        <label class="form-check-label" th:for="'req' + ${question.id}">Обязательный</label>
+                    </div>
+                </div>
+                <div class="col-lg-2 d-grid">
+                    <button type="submit" class="btn btn-outline-primary btn-sm">Сохранить</button>
+                </div>
+            </form>
+
+            <div th:if="${question.choice}">
+                <ul class="list-group mb-3">
+                    <li th:each="option : ${question.options}" class="list-group-item d-flex justify-content-between align-items-center gap-2">
+                        <span>
+                            <span th:text="${option.content}">Вариант</span>
+                            <span th:if="${question.correctOptionId != null and question.correctOptionId == option.id}"
+                                  class="badge bg-success ms-2">Правильный</span>
+                        </span>
+                        <span class="d-flex gap-2">
+                            <form th:if="${question.single and (question.correctOptionId == null or question.correctOptionId != option.id)}"
+                                  th:action="@{/survey/{id}/questions/{qid}/correct(id=${survey.id}, qid=${question.id})}" method="post">
+                                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                                <input type="hidden" name="optionId" th:value="${option.id}">
+                                <button type="submit" class="btn btn-sm btn-outline-success" title="Сделать правильным">
+                                    <i class="bi bi-check2-circle"></i>
+                                </button>
+                            </form>
+                            <form th:if="${question.single and question.correctOptionId != null and question.correctOptionId == option.id}"
+                                  th:action="@{/survey/{id}/questions/{qid}/correct(id=${survey.id}, qid=${question.id})}" method="post">
+                                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary" title="Сбросить правильный ответ">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+                            </form>
+                            <form th:action="@{/survey/{id}/options/{oid}/delete(id=${survey.id}, oid=${option.id})}" method="post"
+                                  onsubmit="return confirm('Удалить вариант?')">
+                                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Удалить вариант">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </span>
+                    </li>
+                    <li th:if="${question.options.isEmpty()}" class="list-group-item text-muted">Вариантов пока нет</li>
+                </ul>
+                <form th:action="@{/survey/{id}/questions/{qid}/options(id=${survey.id}, qid=${question.id})}" method="post" class="row g-2">
+                    <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                    <div class="col-9">
+                        <input type="text" class="form-control" name="content" maxlength="500" placeholder="Новый вариант ответа" required>
+                    </div>
+                    <div class="col-3 d-grid">
+                        <button type="submit" class="btn btn-outline-secondary"><i class="bi bi-plus-lg me-1"></i>Добавить</button>
+                    </div>
+                </form>
+                <p class="small text-muted mt-2 mb-0" th:if="${question.single}">
+                    Отметьте правильный вариант, чтобы результаты считались в процентах.
+                </p>
+            </div>
+
+            <form th:action="@{/survey/{id}/questions/{qid}/delete(id=${survey.id}, qid=${question.id})}" method="post"
+                  class="text-end mt-3" onsubmit="return confirm('Удалить вопрос вместе с вариантами и ответами?')">
+                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash me-1"></i>Удалить вопрос</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px;">
+        <div class="card-header bg-white fw-bold"><i class="bi bi-plus-circle me-2"></i>Новый вопрос</div>
+        <div class="card-body p-4">
+            <form th:action="@{/survey/{id}/questions/save(id=${survey.id})}" method="post" class="row g-2 align-items-center">
+                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                <div class="col-lg-5">
+                    <input type="text" class="form-control" name="content" maxlength="1000" placeholder="Текст вопроса" required>
+                </div>
+                <div class="col-lg-3">
+                    <select class="form-select" name="type">
+                        <option value="SINGLE">Один вариант</option>
+                        <option value="MULTIPLE">Несколько вариантов</option>
+                        <option value="TEXT">Текстовый ответ</option>
+                    </select>
+                </div>
+                <div class="col-lg-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="required" value="true" id="reqNew" checked>
+                        <label class="form-check-label" for="reqNew">Обязательный</label>
+                    </div>
+                </div>
+                <div class="col-lg-2 d-grid">
+                    <button type="submit" class="btn btn-primary">Добавить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card border-danger mb-4" style="border-radius: 15px;">
+        <div class="card-body d-flex justify-content-between align-items-center">
+            <div>
+                <div class="fw-bold text-danger">Удаление анкеты</div>
+                <div class="small text-muted">Анкета, вопросы и все ответы будут удалены безвозвратно</div>
+            </div>
+            <form th:action="@{/survey/{id}/delete(id=${survey.id})}" method="post"
+                  onsubmit="return confirm('Удалить анкету безвозвратно?')">
+                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                <button type="submit" class="btn btn-danger"><i class="bi bi-trash me-1"></i>Удалить</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/js/bootstrap.bundle.min.js}"></script>
+<script>
+    function copyShareUrl() {
+        var input = document.getElementById('shareUrl');
+        input.select();
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(input.value);
+        } else {
+            document.execCommand('copy');
+        }
+    }
+</script>
+</body>
+</html>

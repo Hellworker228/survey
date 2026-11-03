@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB:
+      POSTGRES_USER:
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-survey}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U survey -d survey"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/survey
+      DB_USERNAME: survey
+      DB_PASSWORD: ${DB_PASSWORD:-survey}
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:

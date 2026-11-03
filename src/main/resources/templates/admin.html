@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель - SurveySystem</title>
+    <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet">
+    <style>
+        .card { border: none; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        .card-header { background: #4e73df; color: white; border-radius: 15px 15px 0 0 !important; }
+        .form-control, .btn { border-radius: 10px; }
+        .btn-action { margin: 0 2px; }
+    </style>
+</head>
+<body style="background-color: #f8f9fc; padding: 20px;">
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold">Админ-панель</h2>
+        <div>
+            <a th:href="@{/surveys}" class="btn btn-outline-primary btn-sm me-2">К анкетам</a>
+            <span class="text-muted me-3" th:text="${session.username}">admin</span>
+            <a th:href="@{/logout}" class="btn btn-outline-danger btn-sm">Выйти</a>
+        </div>
+    </div>
+
+    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+    <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3"><div class="card mb-0 text-center p-3"><div class="fs-3 fw-bold" th:text="${usersCount}">0</div><div class="text-muted">Пользователей</div></div></div>
+        <div class="col-6 col-lg-3"><div class="card mb-0 text-center p-3"><div class="fs-3 fw-bold" th:text="${surveysCount}">0</div><div class="text-muted">Анкет</div></div></div>
+        <div class="col-6 col-lg-3"><div class="card mb-0 text-center p-3"><div class="fs-3 fw-bold" th:text="${responsesCount}">0</div><div class="text-muted">Прохождений</div></div></div>
+        <div class="col-6 col-lg-3"><div class="card mb-0 text-center p-3"><div class="fs-3 fw-bold" th:text="${activeUsers}">0</div><div class="text-muted">Активных за 30 дней</div></div></div>
+    </div>
+
+    <div class="card">
+        <div class="card-header py-3"><h5 class="mb-0 fw-bold">Пользователи</h5></div>
+        <div class="card-body">
+            <div class="table-responsive mb-4">
+                <table class="table table-hover align-middle">
+                    <thead>
+                    <tr><th>ID</th><th>Имя</th><th>Email</th><th>Админ</th><th>Email</th><th>Регистрация</th><th>Действия</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="user : ${users}">
+                        <td th:text="${user.id}">1</td>
+                        <td th:text="${user.username}">user</td>
+                        <td th:text="${user.email}">user@mail.com</td>
+                        <td>
+                            <span th:if="${user.admin}" class="badge bg-success">Да</span>
+                            <span th:unless="${user.admin}" class="badge bg-secondary">Нет</span>
+                        </td>
+                        <td>
+                            <span th:if="${user.emailVerified}" class="badge bg-success">Подтверждён</span>
+                            <span th:unless="${user.emailVerified}" class="badge bg-warning text-dark">Не подтверждён</span>
+                        </td>
+                        <td th:text="${user.createdAt != null ? #temporals.format(user.createdAt, 'dd.MM.yyyy') : '—'}">01.01.2030</td>
+                        <td class="text-nowrap">
+                            <button type="button" class="btn btn-sm btn-outline-primary btn-action" onclick="editUser(this)"
+                                    th:attr="data-id=${user.id},data-username=${user.username},data-email=${user.email},data-admin=${user.admin}">
+                                Изменить
+                            </button>
+                            <form th:action="@{/admin/users/delete/{id}(id=${user.id})}" method="post" class="d-inline"
+                                  onsubmit="return confirm('Удалить пользователя?')">
+                                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger btn-action">Удалить</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <form th:action="@{/admin/users/save}" method="post" id="userForm">
+                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                <input type="hidden" name="id" id="userId">
+                <div class="row g-3">
+                    <div class="col-md-3"><input type="text" class="form-control" name="username" id="userUsername" placeholder="Имя пользователя" required></div>
+                    <div class="col-md-3"><input type="email" class="form-control" name="email" id="userEmail" placeholder="Email" required></div>
+                    <div class="col-md-2"><input type="password" class="form-control" name="password" id="userPassword" placeholder="Пароль" autocomplete="new-password"></div>
+                    <div class="col-md-2">
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" name="isAdmin" id="userIsAdmin" value="true">
+                            <label class="form-check-label" for="userIsAdmin">Администратор</label>
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary w-100">Сохранить</button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="resetUserForm()">Сброс</button>
+                    </div>
+                </div>
+                <div class="form-text">При изменении пользователя оставьте пароль пустым, чтобы не менять его.</div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header py-3"><h5 class="mb-0 fw-bold">Анкеты</h5></div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                    <tr><th>ID</th><th>Название</th><th>Автор</th><th>Вопросов</th><th>Ответов</th><th>Доступ</th><th>Статус</th><th>Создана</th><th>Действия</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="survey : ${surveys}">
+                        <td th:text="${survey.id}">1</td>
+                        <td th:text="${survey.title}">Анкета</td>
+                        <td th:text="${survey.creatorName}">автор</td>
+                        <td th:text="${survey.questionsCount}">0</td>
+                        <td th:text="${survey.responsesCount}">0</td>
+                        <td>
+                            <span th:if="${survey.public}" class="badge bg-success">Всем</span>
+                            <span th:unless="${survey.public}" class="badge bg-info text-dark">Выбранным</span>
+                        </td>
+                        <td>
+                            <span th:if="${survey.active}" class="badge bg-success">Опубликована</span>
+                            <span th:unless="${survey.active}" class="badge bg-secondary">Черновик</span>
+                        </td>
+                        <td th:text="${survey.createdAt != null ? #temporals.format(survey.createdAt, 'dd.MM.yyyy') : '—'}">01.01.2030</td>
+                        <td class="text-nowrap">
+                            <a th:href="@{/survey/{id}/edit(id=${survey.id})}" class="btn btn-sm btn-outline-primary btn-action">Редактор</a>
+                            <a th:href="@{/survey/{id}/statistics(id=${survey.id})}" class="btn btn-sm btn-outline-info btn-action">Статистика</a>
+                            <a th:href="@{/survey/{id}/export(id=${survey.id})}" class="btn btn-sm btn-outline-success btn-action">Excel</a>
+                            <form th:action="@{/admin/surveys/toggle/{id}(id=${survey.id})}" method="post" class="d-inline">
+                                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                                <input type="hidden" name="active" th:value="${!survey.active}">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary btn-action"
+                                        th:text="${survey.active} ? 'Снять' : 'Опубликовать'">Снять</button>
+                            </form>
+                            <form th:action="@{/admin/surveys/delete/{id}(id=${survey.id})}" method="post" class="d-inline"
+                                  onsubmit="return confirm('Удалить анкету?')">
+                                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger btn-action">Удалить</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header py-3"><h5 class="mb-0 fw-bold">Последние прохождения</h5></div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                    <tr><th>ID</th><th>Пользователь</th><th>Анкета</th><th>Дата</th><th>Действия</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="response : ${responses}">
+                        <td th:text="${response.id}">1</td>
+                        <td th:text="${response.username}">user</td>
+                        <td th:text="${response.surveyTitle}">Анкета</td>
+                        <td th:text="${response.submittedAt != null ? #temporals.format(response.submittedAt, 'dd.MM.yyyy HH:mm') : '—'}">01.01.2030 12:00</td>
+                        <td>
+                            <form th:action="@{/admin/responses/delete/{id}(id=${response.id})}" method="post"
+                                  onsubmit="return confirm('Удалить прохождение?')">
+                                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Удалить</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function editUser(btn) {
+        document.getElementById('userId').value = btn.dataset.id;
+        document.getElementById('userUsername').value = btn.dataset.username;
+        document.getElementById('userEmail').value = btn.dataset.email;
+        document.getElementById('userPassword').value = '';
+        document.getElementById('userIsAdmin').checked = btn.dataset.admin === 'true';
+        document.getElementById('userForm').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function resetUserForm() {
+        document.getElementById('userForm').reset();
+        document.getElementById('userId').value = '';
+    }
+</script>
+</body>
+</html>

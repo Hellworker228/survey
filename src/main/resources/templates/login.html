@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход в систему - SurveySystem</title>
+    <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
+</head>
+<body class="login-page">
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <i class="bi bi-clipboard-check" style="font-size: 3rem; margin-bottom: 15px;"></i>
+            <h2>Добро пожаловать!</h2>
+            <p>Войдите в систему для доступа к анкетам</p>
+        </div>
+
+        <div class="login-body">
+            <div th:if="${error}" class="alert alert-custom alert-danger-custom" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <span th:text="${error}">Ошибка входа</span>
+            </div>
+
+            <div th:if="${success}" class="alert alert-custom alert-success-custom" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <span th:text="${success}">Успешно</span>
+            </div>
+
+            <form th:if="${unverified}" th:action="@{/resend-verification}" method="post" class="mb-3">
+                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                <input type="hidden" name="login" th:value="${user.username}">
+                <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                    <i class="bi bi-envelope me-2"></i>Отправить письмо повторно
+                </button>
+            </form>
+
+            <form th:action="@{/login}" th:object="${user}" method="post">
+                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                <div class="mb-4">
+                    <label for="username" class="form-label-custom">
+                        <i class="bi bi-person me-2"></i>Имя пользователя / Email
+                    </label>
+                    <div class="input-group-custom">
+                        <input type="text" class="form-control-custom" id="username"
+                               th:field="*{username}" placeholder="Введите username или email" required>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="password" class="form-label-custom">
+                        <i class="bi bi-lock me-2"></i>Пароль
+                    </label>
+                    <div class="input-group-custom">
+                        <input type="password" class="form-control-custom" id="password"
+                               th:field="*{password}" placeholder="Введите пароль" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-login">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Войти
+                </button>
+            </form>
+
+
+        </div>
+
+        <div class="login-footer">
+            <p class="mb-2">
+                <i class="bi bi-person-plus me-1"></i>
+                Нет аккаунта? <a th:href="@{/registration}">Зарегистрироваться</a>
+            </p>
+            <p class="mb-0">
+                <i class="bi bi-house me-1"></i>
+                <a href="/index">Вернуться на главную</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

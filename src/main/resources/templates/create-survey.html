@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Новая анкета - SurveySystem</title>
+    <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
+</head>
+<body class="surveys-page">
+<nav th:replace="~{fragments :: navbar('my')}"></nav>
+
+<div class="surveys-header">
+    <div class="container">
+        <h1>Новая анкета</h1>
+        <p>Задайте название и настройки, вопросы добавите на следующем шаге</p>
+    </div>
+</div>
+
+<div th:replace="~{fragments :: messages}"></div>
+
+<div class="container mb-5">
+    <div class="card border-0 shadow-sm" style="border-radius: 15px;">
+        <div class="card-body p-4">
+            <form th:action="@{/create-survey}" method="post">
+                <input type="hidden" name="_csrf" th:value="${csrfToken}">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="title">Название</label>
+                    <input type="text" class="form-control" id="title" name="title" maxlength="100" required
+                           th:value="${survey.title}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="description">Описание</label>
+                    <textarea class="form-control" id="description" name="description" rows="3" maxlength="2000"
+                              th:text="${survey.description}"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Кто может проходить анкету</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="access" id="accessPublic" value="public"
+                               th:checked="${survey.public}">
+                        <label class="form-check-label" for="accessPublic">Все авторизованные пользователи</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="access" id="accessList" value="list"
+                               th:checked="${!survey.public}">
+                        <label class="form-check-label" for="accessList">Только выбранные пользователи</label>
+                    </div>
+                    <input type="text" class="form-control mt-2" name="accessList"
+                           placeholder="Имена или email через запятую" th:value="${survey.accessList}">
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" name="anonymous" id="anonymous" value="true"
+                           th:checked="${survey.anonymous}">
+                    <label class="form-check-label" for="anonymous">
+                        Анонимная анкета: доступна по ссылке без входа, ответы не связываются с пользователем
+                    </label>
+                    <div class="form-text">Для анонимной анкеты доступ должен быть открыт для всех</div>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label fw-semibold" for="endsAt">Приём ответов до (необязательно)</label>
+                    <input type="datetime-local" class="form-control" id="endsAt" name="endsAt" th:value="${endsAtValue}">
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="bi bi-arrow-right-circle me-2"></i>Создать и перейти к вопросам
+                    </button>
+                    <a th:href="@{/my-surveys}" class="btn btn-outline-secondary">Отмена</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>
